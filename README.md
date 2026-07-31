@@ -6,7 +6,7 @@ A toolbox of practical ADB and Frida commands for Android hacking and debugging.
 
 ```bash
 # Install
-uv tool install --python '>=3.10' .
+uv tool install .
 
 # Requires: adb + frida-tools on host
 #   adb:   apt install adb / brew install android-platform-tools
