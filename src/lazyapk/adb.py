@@ -160,6 +160,12 @@ def process_exists(serial: str | None, name: str) -> bool:
         return False
 
 
+def pidof(serial: str | None, package: str) -> str | None:
+    """First pid of a running package, or None if not running."""
+    out = shell(serial, f"pidof {package}", timeout=10).strip()
+    return out.split()[0] if out else None
+
+
 def chmod(serial: str | None, path: str, mode: str = "755", timeout: int = 10):
     shell(serial, f"chmod {mode} {path}", timeout=timeout)
 
@@ -174,6 +180,17 @@ def settings_get(serial: str | None, namespace: str, key: str) -> str:
 
 def settings_put(serial: str | None, namespace: str, key: str, value: str):
     shell(serial, f"settings put {namespace} {key} {value}", timeout=10)
+
+
+def root(serial: str | None) -> bool:
+    """Restart adbd as root (adb root). Returns True if running as root now."""
+    try:
+        _run_adb(_device_arg(serial) + ["root"], timeout=10)
+    except Exception:
+        return False
+    import time
+    time.sleep(1)
+    return "uid=0" in shell(serial, "id", timeout=10)
 
 
 def pm_list_packages(serial: str | None, filter_flag: str | None = None) -> list[str]:

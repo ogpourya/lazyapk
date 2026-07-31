@@ -17,16 +17,17 @@
 ## Architecture
 - Package in `src/lazyapk/` with separate modules per domain.
 - `cli.py` — Click CLI entry point with global options (-s, -v, --json).
-- `adb.py` — ADB subprocess wrapper with timeouts and device resolution.
+- `adb.py` — ADB subprocess wrapper with timeouts and device resolution (incl. `root()`, `pidof()` helpers).
 - `search.py` — Fuzzy package search engine using rapidfuzz.
 - `transfer.py` — APK pull with split APK support.
 - `proxy.py` — Android global HTTP proxy management via settings.
-- `frida_mgr.py` — Frida-server lifecycle: download, push, start, stop, status.
-- `ssl.py` — SSL unpinning via httptoolkit's frida-interception-and-unpinning script.
+- `frida_mgr.py` — Frida-server lifecycle: download, push, start, stop, status. Start escalates to root (`adb root` / `su -c`) — frida-server needs root to ptrace app processes.
+- `ssl.py` — SSL unpinning via httptoolkit's frida-interception-and-unpinning script. Cached bundle is injected with a CA cert (`--ca` or auto-detect `~/.mitmproxy/mitmproxy-ca-cert.pem`) and run with `frida -D <serial>`; attach mode resolves pid via `pidof` (process names/labels are unreliable on some emulators).
 - `info.py` — Package info viewer via dumpsys parsing.
 - `logcat.py` — Filtered logcat streaming for a specific package.
 - `manifest.py` — AndroidManifest.xml parser using pyaxmlparser.
 - `utils.py` — Shared: Rich console, verbose logging, signal handling, Transaction class.
+- `cli.py` commands: `search`, `pull`, `proxy set/get/clear`, `frida install/start/stop/status`, `unpin` (with `--ca`), `reset` (clears cache, stops frida-server, clears proxy), `info`, `logcat`, `manifest`, `doctor`, `launch`, `kill`.
 - Output: Rich tables to stdout (default), errors/info to stderr, `--json` flag emits JSON to stdout.
 
 ## CLI Standards

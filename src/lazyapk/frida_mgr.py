@@ -131,12 +131,19 @@ def cmd_start(serial: str | None):
 
     dev_path = "/data/local/tmp/frida-server"
     utils.info("Starting frida-server on device...")
+    if not adb.root(serial):
+        utils.verbose("adb root not available, attempting su...")
     try:
-        adb.shell(serial, f"{dev_path} &", timeout=5)
+        # ponytail: frida-server must run as root to ptrace app processes
+        adb.shell(serial, f"su -c '{dev_path} &'", timeout=5)
     except Exception:
         pass
     import time
     time.sleep(1)
+
+    if not adb.process_exists(serial, "frida-server"):
+        adb.shell(serial, f"{dev_path} &", timeout=5)
+        time.sleep(1)
 
     if adb.process_exists(serial, "frida-server"):
         utils.success("frida-server is running")

@@ -1,4 +1,6 @@
+import shutil
 import sys
+from pathlib import Path
 
 import click
 
@@ -273,8 +275,11 @@ def frida_status(state: _GlobalState):
 @cli.command()
 @click.argument("package", metavar="PACKAGE")
 @click.option("--attach", is_flag=True, help="Attach to a running app process instead of spawning a new one.")
+@click.option("--ca", "ca_path", type=click.Path(path_type=Path), default=None,
+              help="Path to a PEM CA certificate to inject for interception "
+                   "(default: auto-detect ~/.mitmproxy/mitmproxy-ca-cert.pem).")
 @pass_state
-def unpin(state: _GlobalState, package: str, attach: bool):
+def unpin(state: _GlobalState, package: str, attach: bool, ca_path: Path | None):
     """Bypass SSL pinning on a target app using Frida.
 
     Downloads the universal frida-interception-and-unpinning script
@@ -288,9 +293,55 @@ def unpin(state: _GlobalState, package: str, attach: bool):
     serial = _serial(state)
 
     try:
-        ssl.cmd_unpin(serial, package, attach=attach)
+        ssl.cmd_unpin(serial, package, attach=attach, ca_path=ca_path)
     except Exception as e:
         utils.fatal(str(e))
+
+
+# ── reset ───────────────────────────────────────────────────────────
+
+
+@cli.command()
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt.")
+@pass_state
+def reset(state: _GlobalState, yes: bool):
+    """Reset LazyAPK state: clear cached downloads and device proxy/frida state.
+
+    Removes all local caches (downloaded scripts, frida-server binaries),
+    clears the device's global HTTP proxy, and stops frida-server if running.
+    """
+    utils.init_utils(verbose=state.verbose)
+    utils.setup_signals()
+    serial = _serial(state)
+
+    if not yes:
+        if not click.confirm("This clears caches, proxy, and stops frida-server. Continue?"):
+            utils.info("Aborted")
+            return
+
+    removed = []
+    for d in (utils.CACHE_DIR,):
+        if d.exists():
+            shutil.rmtree(d, ignore_errors=True)
+            removed.append(str(d))
+            utils.verbose(f"Removed {d}")
+    if not removed:
+        utils.verbose("No caches to remove")
+
+    try:
+        if adb_mod.process_exists(serial, "frida-server"):
+            frida_mgr.cmd_stop(serial)
+        else:
+            utils.verbose("frida-server not running")
+    except Exception as e:
+        utils.warn(f"Could not stop frida-server: {e}")
+
+    try:
+        proxy_mod.cmd_clear(serial)
+    except Exception as e:
+        utils.warn(f"Could not clear proxy: {e}")
+
+    utils.success("Reset complete")
 
 
 # ── helpers ─────────────────────────────────────────────────────────
