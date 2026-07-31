@@ -9,16 +9,33 @@ import httpx
 from . import adb, utils
 
 BASE_URL = "https://raw.githubusercontent.com/httptoolkit/frida-interception-and-unpinning/main"
-SCRIPT_FILES = ["config.js", "android/android-certificate-unpinning.js"]
+SCRIPT_FILES = [
+    "config.js",
+    "android/android-certificate-unpinning.js",
+    "android/android-proxy-override.js",
+    "native-connect-hook.js",
+]
 
 CACHE_DIR = utils.CACHE_DIR / "ssl-unpin"
 CACHE_SCRIPTS = CACHE_DIR / "scripts.js"
+CACHE_FINGERPRINT = CACHE_DIR / "fingerprint.txt"
 
 CERT_PATTERN = re.compile(r"const CERT_PEM = `.*?`;", re.S)
+PROXY_HOST_PATTERN = re.compile(r"const PROXY_HOST = '[^']*';")
+PROXY_PORT_PATTERN = re.compile(r"const PROXY_PORT = \d+;")
+
+
+def _bundle_fingerprint() -> str:
+    return "|".join(SCRIPT_FILES)
 
 
 def _download_bundle() -> Path:
-    if not CACHE_SCRIPTS.exists():
+    cached = (
+        CACHE_SCRIPTS.exists()
+        and CACHE_FINGERPRINT.exists()
+        and CACHE_FINGERPRINT.read_text() == _bundle_fingerprint()
+    )
+    if not cached:
         utils.info("Downloading SSL unpinning scripts...")
 
         parts = []
@@ -33,6 +50,7 @@ def _download_bundle() -> Path:
 
         CACHE_SCRIPTS.parent.mkdir(parents=True, exist_ok=True)
         CACHE_SCRIPTS.write_text("\n\n".join(parts))
+        CACHE_FINGERPRINT.write_text(_bundle_fingerprint())
         utils.verbose("Scripts cached")
     else:
         utils.verbose("Using cached SSL unpinning scripts")
@@ -50,7 +68,7 @@ def _find_ca() -> Path | None:
     return None
 
 
-def _write_injected_script(bundle: Path, ca_path: Path | None) -> Path:
+def _write_injected_script(bundle: Path, ca_path: Path | None, proxy: str | None) -> Path:
     script = bundle.read_text()
     if ca_path:
         ca = ca_path.read_text()
@@ -59,10 +77,23 @@ def _write_injected_script(bundle: Path, ca_path: Path | None) -> Path:
         script, n = CERT_PATTERN.subn("const CERT_PEM = `" + ca.strip() + "`;", script, count=1)
         if n != 1:
             raise RuntimeError("Could not inject CA certificate into script")
+    if proxy and ":" in proxy:
+        host, port = proxy.rsplit(":", 1)
+        script = PROXY_HOST_PATTERN.sub(f"const PROXY_HOST = '{host}';", script, count=1)
+        script = PROXY_PORT_PATTERN.sub(f"const PROXY_PORT = {int(port)};", script, count=1)
+        utils.verbose(f"Proxy injection: {host}:{port}")
     fd, path = tempfile.mkstemp(suffix=".js", prefix="lazyapk-unpin-")
     with os.fdopen(fd, "w") as f:
         f.write(script)
     return Path(path)
+
+
+def _device_proxy(serial: str | None) -> str | None:
+    """Device's global http_proxy setting, or None."""
+    raw = adb.settings_get(serial, "global", "http_proxy").strip()
+    if not raw or raw in ("null", ":0", "0.0.0.0:0"):
+        return None
+    return raw
 
 
 def check_frida_tools() -> str | None:
@@ -91,7 +122,13 @@ def cmd_unpin(serial: str | None, package: str, attach: bool = False, ca_path: P
     else:
         utils.warn("No CA certificate found — unpinning only, use --ca to enable interception")
 
-    script_path = _write_injected_script(_download_bundle(), ca)
+    proxy = _device_proxy(serial)
+    if proxy:
+        utils.verbose(f"Redirecting direct connections via device proxy: {proxy}")
+    else:
+        utils.warn("No device proxy set — apps bypassing the proxy won't be intercepted. Use: lazyapk proxy set HOST PORT")
+
+    script_path = _write_injected_script(_download_bundle(), ca, proxy)
 
     dev_serial = adb.resolve_device(serial)
     utils.info(f"Target device: {dev_serial}")

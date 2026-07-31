@@ -22,7 +22,7 @@
 - `transfer.py` — APK pull with split APK support.
 - `proxy.py` — Android global HTTP proxy management via settings.
 - `frida_mgr.py` — Frida-server lifecycle: download, push, start, stop, status. Start escalates to root (`adb root` / `su -c`) — frida-server needs root to ptrace app processes.
-- `ssl.py` — SSL unpinning via httptoolkit's frida-interception-and-unpinning script. Cached bundle is injected with a CA cert (`--ca` or auto-detect `~/.mitmproxy/mitmproxy-ca-cert.pem`) and run with `frida -D <serial>`; attach mode resolves pid via `pidof` (process names/labels are unreliable on some emulators).
+- `ssl.py` — SSL unpinning via httptoolkit's frida-interception-and-unpinning script. Cached bundle (invalidated by script-list fingerprint) is injected with a CA cert (`--ca` or auto-detect `~/.mitmproxy/mitmproxy-ca-cert.pem`) and the device's proxy; run with `frida -D <serial>`. Bundle includes connect-hook/proxy-override scripts so proxy-bypassing apps are redirected through the device proxy. Attach mode resolves pid via `pidof` (process names/labels are unreliable on some emulators).
 - `info.py` — Package info viewer via dumpsys parsing.
 - `logcat.py` — Filtered logcat streaming for a specific package.
 - `manifest.py` — AndroidManifest.xml parser using pyaxmlparser.
