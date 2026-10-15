@@ -6,7 +6,7 @@ A toolbox of practical ADB and Frida commands for Android hacking and debugging.
 
 ```bash
 # Install
-uv tool install .
+uv tool install https://github.com/ogpourya/lazyapk.git
 
 # Requires: adb + frida-tools on host
 #   adb:   apt install adb / brew install android-platform-tools
