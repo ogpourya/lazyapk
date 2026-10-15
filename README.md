@@ -13,6 +13,14 @@ uv tool install https://github.com/ogpourya/lazyapk.git
 #   frida: uv tool install frida-tools
 ```
 
+### From source
+
+```bash
+uv sync          # installs lazyapk into .venv (requires build-system)
+uv run lazyapk --help
+uv run lazyapk doctor
+```
+
 ## Usage
 
 ```bash
@@ -33,6 +41,13 @@ lazyapk unpin com.example.app           # Bypass SSL pinning
 | `proxy` | Manage device HTTP proxy (set/get/clear) |
 | `frida` | Full frida-server lifecycle (install/start/stop/status) |
 | `unpin` | Universal SSL pinning bypass via Frida |
+| `info` | Show version, permissions, components for a package |
+| `logcat` | Stream logcat filtered to a package (`-l LEVEL`) |
+| `manifest` | Parse and show AndroidManifest.xml from device APK |
+| `launch` | Start app main activity via monkey |
+| `kill` | Force-stop a running app (`am force-stop`) |
+| `reset` | Clear cache, stop frida-server, clear proxy |
+| `doctor` | Check adb/frida/device/frida-server status |
 
 ## CLI Standards
 

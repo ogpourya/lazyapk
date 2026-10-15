@@ -2,6 +2,7 @@ import os
 import signal
 import sys
 import threading
+from collections.abc import Callable
 from contextlib import contextmanager
 from pathlib import Path
 from types import FrameType
@@ -68,10 +69,10 @@ class TransactionError(Exception):
 class Transaction:
     def __init__(self, name: str):
         self.name = name
-        self._steps: list[tuple[str, callable, callable]] = []
+        self._steps: list[tuple[str, Callable, Callable | None]] = []
         self._completed: list[str] = []
 
-    def step(self, description: str, do: callable, undo: callable | None = None):
+    def step(self, description: str, do: Callable, undo: Callable | None = None):
         self._steps.append((description, do, undo))
 
     def __enter__(self):
