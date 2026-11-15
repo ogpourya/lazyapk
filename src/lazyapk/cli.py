@@ -11,6 +11,7 @@ from . import frida_mgr, proxy as proxy_mod, search, ssl, transfer, info as info
 _EPILOG = """
 Examples:
 
+  lazyapk connect 192.168.1.50:5555
   lazyapk search --query banking
   lazyapk info com.example.app
   lazyapk manifest com.example.app
@@ -86,6 +87,47 @@ def cli(**kwargs):
     are present.
     """
     pass
+
+
+# ── connect ─────────────────────────────────────────────────────────
+
+
+@cli.command()
+@click.argument("host", metavar="HOST[:PORT]")
+@click.argument("port", type=int, required=False, default=None, metavar="[PORT]")
+@pass_state
+def connect(state: _GlobalState, host: str, port: int | None):
+    """Connect to a device over TCP/IP via ADB.
+
+    Accepts either HOST:PORT or HOST PORT (defaults to port 5555).
+    Once connected, target the device with -s HOST:PORT.
+    """
+    utils.init_utils(verbose=state.verbose, json_output=state.json)
+    utils.setup_signals()
+
+    if ":" in host:
+        if port is not None:
+            raise click.BadParameter("Do not pass PORT separately when HOST already includes :PORT")
+        host, port_str = host.rsplit(":", 1)
+        if not port_str.isdigit():
+            raise click.BadParameter(f"Invalid port: {port_str}")
+        port = int(port_str)
+    elif port is None:
+        port = 5555
+
+    if not host or not (1 <= port <= 65535):
+        raise click.BadParameter(f"Invalid target: {host}:{port}")
+
+    try:
+        out = adb_mod.connect(host, port)
+    except adb_mod.AdbError as e:
+        utils.fatal(str(e))
+
+    if state.json:
+        import json
+        utils.stdprint(json.dumps({"target": f"{host}:{port}", "status": out}, indent=2))
+    else:
+        utils.success(out)
 
 
 # ── search ──────────────────────────────────────────────────────────

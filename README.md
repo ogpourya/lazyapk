@@ -24,6 +24,7 @@ uv run lazyapk doctor
 ## Usage
 
 ```bash
+lazyapk connect 192.168.1.50:5555       # Connect to device over TCP/IP
 lazyapk search --query banking          # Fuzzy search packages
 lazyapk pull com.example.app -o ./apks  # Pull APK from device
 lazyapk proxy set 192.168.1.1 8080      # Set device HTTP proxy
@@ -36,6 +37,7 @@ lazyapk unpin com.example.app           # Bypass SSL pinning
 
 | Command | Description |
 |---------|-------------|
+| `connect` | Connect to a device over TCP/IP (`HOST[:PORT]` or `HOST PORT`) |
 | `search` | List/Search packages with fuzzy matching (name, label, type) |
 | `pull` | Pull APK(s) from device, supports split APKs |
 | `proxy` | Manage device HTTP proxy (set/get/clear) |

@@ -92,6 +92,14 @@ def resolve_device(serial: str | None = None) -> str:
     return devs[0]["serial"]
 
 
+def connect(host: str, port: int = 5555, timeout: int = 15) -> str:
+    target = f"{host}:{port}"
+    out = _run_adb(["connect", target], timeout=timeout)
+    if "connected to" not in out.lower():
+        raise AdbError(out or f"Failed to connect to {target}")
+    return out
+
+
 def shell(serial: str | None, command: str, timeout: int = 30) -> str:
     return _run_adb(_device_arg(serial) + ["shell", command], timeout=timeout)
 

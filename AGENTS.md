@@ -27,7 +27,7 @@
 - `logcat.py` — Filtered logcat streaming for a specific package.
 - `manifest.py` — AndroidManifest.xml parser using pyaxmlparser.
 - `utils.py` — Shared: Rich console, verbose logging, signal handling, Transaction class.
-- `cli.py` commands: `search`, `pull`, `proxy set/get/clear`, `frida install/start/stop/status`, `unpin` (with `--ca`), `reset` (clears cache, stops frida-server, clears proxy), `info`, `logcat`, `manifest`, `doctor`, `launch`, `kill`.
+- `cli.py` commands: `connect`, `search`, `pull`, `proxy set/get/clear`, `frida install/start/stop/status`, `unpin` (with `--ca`), `reset` (clears cache, stops frida-server, clears proxy), `info`, `logcat`, `manifest`, `doctor`, `launch`, `kill`.
 - Output: Rich tables to stdout (default), errors/info to stderr, `--json` flag emits JSON to stdout.
 
 ## CLI Standards
