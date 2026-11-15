@@ -50,7 +50,8 @@ def _run_adb(args: list[str], timeout: int = 30) -> str:
 
     if r.returncode != 0:
         err = r.stderr.strip() or r.stdout.strip()
-        raise AdbError(f"adb failed: {err}")
+        cmd_str = " ".join(args)
+        raise AdbError(f"adb failed ({cmd_str}): {err}" if err else f"adb failed ({cmd_str}, exit {r.returncode})")
 
     return r.stdout.strip()
 

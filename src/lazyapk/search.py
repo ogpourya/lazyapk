@@ -159,3 +159,40 @@ def display_apps(ranked: list[tuple[AppInfo, int]], json_output: bool = False) -
         table.add_row(app.package, label, cat, str(score))
 
     utils._stdout.print(table)
+
+
+def resolve_package(serial: str | None, query: str) -> str:
+    """Resolve an exact or fuzzy package query to a single installed package name."""
+    all_pkgs = adb.list_packages(serial)
+    if query in all_pkgs:
+        return query
+
+    apps = [AppInfo(package=p, category=categorize_package(p)) for p in all_pkgs]
+    ranked = search_apps(apps, query=query, min_score=65)
+    if not ranked:
+        utils.fatal(f"No package matching '{query}' found on device")
+
+    # Prefer third-party packages when scores are close
+    ranked.sort(key=lambda x: (-x[1], 0 if x[0].category == "third-party" else 1, x[0].package))
+
+    best_app, best_score = ranked[0]
+    if len(ranked) == 1:
+        utils.info(f"Matched package: {best_app.package}")
+        return best_app.package
+
+    second_app, second_score = ranked[1]
+    # Auto-pick if best is a clear winner (or sole third-party hit)
+    third_party_hits = [a for a, s in ranked if a.category == "third-party" and s >= 75]
+    if len(third_party_hits) == 1 and best_app.package == third_party_hits[0].package:
+        utils.info(f"Matched package: {best_app.package}")
+        return best_app.package
+
+    if best_score - second_score >= 15:
+        utils.info(f"Matched package: {best_app.package}")
+        return best_app.package
+
+    utils.warn(f"Multiple packages match '{query}':")
+    for app, _ in ranked[:5]:
+        utils._console.print(f"  • [cyan]{app.package}[/] [dim]({app.category})[/]", highlight=False)
+    utils.fatal("Re-run with the exact package name")
+    return ""

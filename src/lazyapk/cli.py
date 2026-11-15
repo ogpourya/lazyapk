@@ -202,6 +202,7 @@ def pull(state: _GlobalState, package: str, output: str, all_splits: bool):
     utils.setup_signals()
 
     serial = _serial(state)
+    package = search.resolve_package(serial, package)
     transfer.pull_apk(serial, package, output, all_splits=all_splits, json_output=state.json)
 
 
@@ -333,6 +334,7 @@ def unpin(state: _GlobalState, package: str, attach: bool, ca_path: Path | None)
     utils.init_utils(verbose=state.verbose)
     utils.setup_signals()
     serial = _serial(state)
+    package = search.resolve_package(serial, package)
 
     try:
         ssl.cmd_unpin(serial, package, attach=attach, ca_path=ca_path)
@@ -406,6 +408,7 @@ def info(state: _GlobalState, package: str):
     utils.init_utils(verbose=state.verbose, json_output=state.json)
     utils.setup_signals()
     serial = _serial(state)
+    package = search.resolve_package(serial, package)
     try:
         info_mod.cmd_info(serial, package, json_output=state.json)
     except adb_mod.AdbError as e:
@@ -430,6 +433,7 @@ def logcat(state: _GlobalState, package: str, level: str):
     utils.init_utils(verbose=state.verbose)
     utils.setup_signals()
     serial = _serial(state)
+    package = search.resolve_package(serial, package)
     logcat_mod.cmd_logcat(serial, package, level=level.upper())
 
 
@@ -449,6 +453,7 @@ def manifest(state: _GlobalState, package: str):
     utils.init_utils(verbose=state.verbose, json_output=state.json)
     utils.setup_signals()
     serial = _serial(state)
+    package = search.resolve_package(serial, package)
     try:
         manifest_mod.cmd_manifest(serial, package, json_output=state.json)
     except Exception as e:
@@ -559,6 +564,7 @@ def launch(state: _GlobalState, package: str):
     utils.init_utils(verbose=state.verbose)
     utils.setup_signals()
     serial = _serial(state)
+    package = search.resolve_package(serial, package)
     try:
         adb_mod.shell(serial, f"monkey -p {package} 1", timeout=10)
         utils.success(f"Launched {package}")
@@ -579,6 +585,7 @@ def kill(state: _GlobalState, package: str):
     utils.init_utils(verbose=state.verbose)
     utils.setup_signals()
     serial = _serial(state)
+    package = search.resolve_package(serial, package)
     try:
         adb_mod.shell(serial, f"am force-stop {package}", timeout=10)
         utils.success(f"Stopped {package}")

@@ -69,8 +69,8 @@ def cmd_info(serial: str | None, package: str, json_output: bool = False):
         utils.stdprint(json.dumps(info, indent=2, ensure_ascii=False))
         return
 
-    if not info.get("name"):
-        utils.fatal(f"No info found for package '{package}'")
+    if not info.get("name") or info.get("name") != package:
+        utils.fatal(f"Package '{package}' not found on device")
 
     from rich.table import Table
     from rich.panel import Panel
