@@ -1,6 +1,7 @@
 import shlex
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from . import utils
@@ -92,12 +93,26 @@ def resolve_device(serial: str | None = None) -> str:
     return devs[0]["serial"]
 
 
-def connect(host: str, port: int = 5555, timeout: int = 15) -> str:
+def connect(host: str, port: int = 5555, timeout: int = 30) -> str:
     target = f"{host}:{port}"
-    out = _run_adb(["connect", target], timeout=timeout)
-    if "connected to" not in out.lower():
+    out = _run_adb(["connect", target], timeout=min(timeout, 15))
+    low = out.lower()
+    if "connected to" in low:
+        return out
+    if "failed to authenticate" not in low:
         raise AdbError(out or f"Failed to connect to {target}")
-    return out
+
+    utils.info(f"Waiting for ADB authorization on {target} (accept the prompt on device)...")
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        raw = _run_adb(["devices"], timeout=5)
+        for line in raw.splitlines():
+            parts = line.split()
+            if len(parts) >= 2 and parts[0] == target and parts[1] == "device":
+                return f"connected to {target}"
+        time.sleep(0.5)
+
+    raise AdbError(f"Timed out waiting for authorization on {target}")
 
 
 def shell(serial: str | None, command: str, timeout: int = 30) -> str:
